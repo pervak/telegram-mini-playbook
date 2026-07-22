@@ -1,0 +1,36 @@
+# Telegram MCP (fast-mcp-telegram) — боевой compose, обезличено.
+# Подставь свой домен. API_ID/API_HASH — в ./.env рядом (см. .env.example).
+# Готовый образ автора закрыт (ghcr.io → 403, github-репо → 404, июль 2026),
+# поэтому собираем сами из PyPI: docker compose up -d --build
+services:
+  fast-mcp-telegram:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM python:3.12-slim
+        # версия запинена: апстрим закрылся без предупреждения — обновлять осознанно
+        RUN pip install --no-cache-dir fast-mcp-telegram==0.42.0 && useradd -m -u 1000 appuser
+        USER appuser
+        ENV PYTHONUNBUFFERED=1
+        CMD ["fast-mcp-telegram"]
+    image: fast-mcp-telegram:pypi
+    container_name: tg-mcp
+    env_file:
+      - ./.env
+    environment:
+      - SERVER_MODE=http-auth
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DOMAIN=tg-mcp.example.com
+    ports:
+      - "127.0.0.1:8810:8000"   # наружу НЕ открывать — только через nginx
+    volumes:
+      - ./sessions:/home/appuser/.config/fast-mcp-telegram
+    restart: unless-stopped
+    mem_limit: 256m
+    healthcheck:
+      # python вместо curl: в python:3.12-slim curl'а нет
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 2

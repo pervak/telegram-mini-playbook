@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+sessions/
+*.session
+*.session-journal
+*.db
+*.db-shm
+*.db-wal
+*.log
+.DS_Store
